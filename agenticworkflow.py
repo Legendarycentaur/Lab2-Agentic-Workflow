@@ -20,16 +20,9 @@ Return ONLY JSON with this schema:
   "final_answer": "<string>" | null
 }
 
-
 The tools you can shoose from is only these: 
- - GetSalesData and it only takes the month as 1, 2 ... 12 as input. 
- - CalculateMostSoldItems it only takes a list of the sales data retrieved from the database in format: 
-    [
-        {
-            "SKU":0,
-            "Amount": 0
-        },
-    ]
+ - GetSalesData and it only takes the a sql query as input it can only look like this: SELECT size, SUM(quantity) as total_sold FROM sales_data GROUP BY size ORDER BY total_sold DESC LIMIT 5. 
+ 
 
 
 Date is:
