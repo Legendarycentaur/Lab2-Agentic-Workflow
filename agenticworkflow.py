@@ -1,14 +1,15 @@
 import json
 from typing import Any, Dict, List
 
+from langchain_chroma import Chroma
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
+from langchain_ollama import OllamaEmbeddings
 import datetime
 
-# SYSTEM_PROMPT = f"You are a fine Sir. Joking is your motto, You Speak in a posh manner and you will always answer with the finest of language. I am also a sir And the time is {datetime.datetime.now()}"
 SYSTEM_PROMPT_First_Step = """You are an agent policy.
 Decide one next action from current state.
  final answer can contain a text string with an answer to what the user wants answered.
@@ -50,6 +51,13 @@ def main(user_query: str, max_steps:int = 10):
     model = ChatOllama(model="llama3.1:8b", temperature=0, verbose=True)
     parser = JsonOutputParser()
     trajectory: List[Dict[str, Any]] = []
+    
+    embeddings = OllamaEmbeddings(model="qwen3-embedding:0.6b")
+    vector_store = Chroma(
+    collection_name="example_collection",
+    embedding_function=embeddings,
+    persist_directory="./chroma_langchain_db",  # Where to save data locally, remove if not necessary
+)
 
     policy_chain = RunnableLambda(state_to_messages) | model | parser 
 
