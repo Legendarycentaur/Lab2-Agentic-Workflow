@@ -7,7 +7,7 @@ def run_sql_query(sql_query: str):
     """
     try:
         # Anslut till databasen som skapades av dataingestion.py
-        conn = sqlite3.connect("ecommerce_sales.db")
+        conn = sqlite3.connect("coffee_sales.db")
         cursor = conn.cursor()
         
         cursor.execute(sql_query)

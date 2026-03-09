@@ -17,15 +17,18 @@ def initialize_metadata():
     
     # Här beskriver du din data. Detta är 'hjärnan' i din RAG.
     descriptions = [
-    "The table name is 'sales_data'. Use this for all e-commerce queries.",
-    "Column 'order_id' is a BIGINT and serves as the unique identifier for each sale.",
-    "Column 'order_date' is TEXT in YYYY-MM-DD format. Use this for filtering by time or date.",
-    "Column 'sku' is TEXT and stands for Stock Keeping Unit, identifying unique products.",
-    "Column 'color' is TEXT and describes the product's color variant.",
-    "Column 'size' is TEXT and describes the product's size (e.g., S, M, L, XL).",
-    "Column 'unit_price' is a BIGINT representing the price of a single item.",
-    "Column 'quantity' is a BIGINT representing how many items were bought in one order.",
-    "Column 'revenue' is a BIGINT representing the total money from the order (unit_price * quantity)."
+    "The table name is 'sales_data'. It contains coffee shop transaction records.",
+    "Column 'transaction_id' is a unique BIGINT identifier for each sale.",
+    "Column 'transaction_date' is TEXT (YYYY-MM-DD). Use this for daily or monthly sales analysis.",
+    "Column 'transaction_time' is TEXT (HH:MM:SS) for time-of-day analysis.",
+    "Column 'transaction_qty' (BIGINT) is the number of items sold in one transaction.",
+    "Column 'store_id' and 'store_location' (TEXT) identify where the sale happened (e.g., Manhattan, Astoria).",
+    "Column 'product_id' is a unique BIGINT for each item.",
+    "Column 'unit_price' is a FLOAT representing the cost of a single item.",
+    "Column 'product_category' (TEXT) is the broad category like 'Coffee', 'Tea', or 'Bakery'.",
+    "Column 'product_type' (TEXT) is the specific style, e.g., 'Gourmet brewed coffee'.",
+    "Column 'product_detail' (TEXT) is the exact product name, e.g., 'Ethiopia Roasting'.",
+    "To calculate total revenue for a row, use: (transaction_qty * unit_price)."
 ]
     
     # Skapa vektordatabasen och spara den i mappen chroma_langchain_db

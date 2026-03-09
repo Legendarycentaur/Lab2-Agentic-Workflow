@@ -6,7 +6,7 @@ import os
 def fetch_and_store_data():
     print("Steg 1: Hämtar dataset från Kaggle...")
     # Laddar ner senaste versionen av damklädes-datasetet
-    path = kagglehub.dataset_download("shilongzhuang/-women-clothing-ecommerce-sales-data")
+    path = kagglehub.dataset_download("agungpambudi/trends-product-coffee-shop-sales-revenue-dataset")
     
     # Hittar CSV-filen i den nedladdade mappen
     files = [f for f in os.listdir(path) if f.endswith('.csv')]
@@ -18,14 +18,19 @@ def fetch_and_store_data():
     print(f"Steg 2: Läser in {csv_path}")
 
     # Läser in datan
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, sep=',', on_bad_lines='skip')
+
+    if len(df.columns) <= 1:
+        df = pd.read_csv(csv_path, sep='|', on_bad_lines='skip')
     
+    df = df.loc[:, ~df.columns.str.contains('^unnamed|^ransac', case=False)]
     # RENSNING: Gör kolumnnamnen "Agent-vänliga" (inga mellanslag eller konstiga tecken)
     df.columns = [c.replace(' ', '_').replace('-', '_').replace('/', '_').lower() for c in df.columns]
 
-    print("Steg 3: Skapar SQLite-databasen 'ecommerce_sales.db'...")
-    engine = create_engine("sqlite:///ecommerce_sales.db")
-    
+    df = df.dropna(how='all')
+    df['transaction_date']=pd.to_datetime(df['transaction_date'])
+    print("Steg 3: Skapar SQLite-databasen 'coffee_sales.db")
+    engine = create_engine("sqlite:///coffee_sales.db")
     # Sparar till tabellen 'sales_data'
     df.to_sql("sales_data", engine, if_exists="replace", index=False)
     
