@@ -7,7 +7,7 @@ def run_sql_query(sql_query: str):
     """
     try:
         # Anslut till databasen som skapades av dataingestion.py
-        conn = sqlite3.connect("ecommerce_sales.db")
+        conn = sqlite3.connect("coffee_sales.db")
         cursor = conn.cursor()
         
         cursor.execute(sql_query)
@@ -33,5 +33,9 @@ def run_sql_query(sql_query: str):
 # Ett litet testblock för att se att kopplingen fungerar direkt
 if __name__ == "__main__":
     print("Testar koppling till databasen...")
-    test_result = run_sql_query("SELECT size, SUM(quantity) as total_sold FROM sales_data GROUP BY size ORDER BY total_sold DESC LIMIT 5")
+    test_result = run_sql_query("" \
+    "SELECT size, order_date, SUM(quantity) as total_sold " \
+    "FROM sales_data " \
+    "GROUP BY size " \
+    "ORDER BY total_sold ")
     print(test_result)
