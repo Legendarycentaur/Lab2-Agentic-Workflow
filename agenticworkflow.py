@@ -47,7 +47,7 @@ def state_to_messages(state: dict) -> list[tuple[str, str]]:
     return [("system", SYSTEM_PROMPT_First_Step), ("human", prompt)]
 
 def main(user_query: str, max_steps:int = 10):
-    model = ChatOllama(model="llama3.1:8b", temperature=0)
+    model = ChatOllama(model="llama3.1:8b", temperature=0, verbose=True)
     parser = JsonOutputParser()
     trajectory: List[Dict[str, Any]] = []
 

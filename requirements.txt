@@ -1,0 +1,7 @@
+chromadb
+pandas
+ollama
+kagglehub
+sqlalchemy
+langchain_ollama
+langchain_core
