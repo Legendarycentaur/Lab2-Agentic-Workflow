@@ -214,3 +214,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ChromaDB (Vektordatabasen)
+chroma_langchain_db/
+
+# Den lokala SQL-databasen
+ecommerce_sales.db
