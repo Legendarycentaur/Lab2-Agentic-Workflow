@@ -17,18 +17,13 @@ def initialize_metadata():
     
     # Här beskriver du din data. Detta är 'hjärnan' i din RAG.
     descriptions = [
-    "The table name is 'sales_data'. It contains coffee shop transaction records.",
-    "Column 'transaction_id' is a unique BIGINT identifier for each sale.",
-    "Column 'transaction_date' is TEXT (YYYY-MM-DD). Use this for date related sales analysis.",
-    "Column 'transaction_time' is TEXT (HH:MM:SS) for time-of-day analysis.",
-    "Column 'transaction_qty' (BIGINT) is the number of items sold in one transaction.",
-    "Column 'store_id' and 'store_location' (TEXT) identify where the sale happened (e.g., Manhattan, Astoria).",
-    "Column 'product_id' is a unique BIGINT for each item.",
-    "Column 'unit_price' is a FLOAT representing the cost of a single item.",
-    "Column 'product_category' (TEXT) is the broad category like 'Coffee', 'Tea', or 'Bakery'.",
-    "Column 'product_type' (TEXT) is the specific style, e.g., 'Gourmet brewed coffee'.",
-    "Column 'product_detail' (TEXT) is the exact product name, e.g., 'Ethiopia Roasting'.",
-    "To calculate total revenue for a row, use: (transaction_qty * unit_price)."
+    "The table name is 'sales_data'.",
+    "Column 'product_category' is the main category (e.g., 'Coffee', 'Tea').",
+    "Column 'product_type' represents the specific variants of products within a category.",
+    "Column 'store_id' and 'store_location' identify the specific shop.",
+    "Column 'transaction_qty' is the number of units sold.",
+    "To calculate store-specific distribution: Group by 'product_type' and 'store_location'.",
+    "Formula: (SUM of units for a specific type in a store / SUM of total units for that category in that same store) * 100."
 ]
     
     # Skapa vektordatabasen och spara den i mappen chroma_langchain_db
