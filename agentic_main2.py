@@ -144,11 +144,6 @@ def caller_node(instruction, goal): #Goal används inte
     if not data or "tool_call" not in data:
         return {"tool_call": {"name": "calculator", "query": "ERROR_JSON_PARSE_FAILED"}}
         
-    # Makes sure the tool call name is a real one.  
-    # t = data["tool_call"]
-    # if "SCHEMA:" in instruction: t["name"] = "get_schema"
-    # elif "SQL:" in instruction: t["name"] = "run_sql"
-    # elif "CALCULATOR:" in instruction: t["name"] = "calculator"
     
     return data
 
