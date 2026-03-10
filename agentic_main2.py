@@ -89,7 +89,7 @@ def planner_node(goal, full_history):
         suggested_instruction = "CALCULATOR: <num1> + <num2> + <num3>... (REPLACE with actual quantities from SQL result. NO SQL QUERIES. USE ONLY NUMBERS, NOT TEXT)"
         suggested_thought = "Sum the quantities using the calculator with REAL NUMBERS."
     elif has_schema_info:
-        suggested_instruction = "SQL: SELECT product_type, SUM(transaction_qty) FROM sales_data WHERE product_category = '' GROUP BY product_type"
+        suggested_instruction = "SQL: SELECT product_type, SUM(transaction_qty) FROM sales_data WHERE product_category = '' AND transaction_date LIKE '<YYYY-MM>%' AND store_location = '<location>' GROUP BY product_type"
         suggested_thought = "Write a SQL query to get the total quantity per product type."
     else:
         suggested_instruction = "SCHEMA: sales_data"
@@ -140,25 +140,36 @@ def caller_node(instruction, goal): #Goal används inte
     res = model.invoke(prompt)
     data = extract_json(res.content)
     
-    # Om tolkningen misslyckas tvingar vi fram ett system-fel istället för att dölja det
+    # if toolcall can not be parsed
     if not data or "tool_call" not in data:
         return {"tool_call": {"name": "calculator", "query": "ERROR_JSON_PARSE_FAILED"}}
         
-    # Säkerställ mappning baserat på prefixet ifall agenten försöker vara kreativ
-    t = data["tool_call"]
-    if "SCHEMA:" in instruction: t["name"] = "get_schema"
-    elif "SQL:" in instruction: t["name"] = "run_sql"
-    elif "CALCULATOR:" in instruction: t["name"] = "calculator"
+    # Makes sure the tool call name is a real one.  
+    # t = data["tool_call"]
+    # if "SCHEMA:" in instruction: t["name"] = "get_schema"
+    # elif "SQL:" in instruction: t["name"] = "run_sql"
+    # elif "CALCULATOR:" in instruction: t["name"] = "calculator"
     
     return data
 
-# --- ROLL 3: SUMMARIZER (The Sir) ---
+# --- ROLL 3: SUMMARIZER  ---
 def summarizer_node(goal, history):
-    prompt = f"Role: Posh Strategist. Goal: {goal}. History: {json.dumps(history)}. Write a concise, formal final report mapping the calculated percentages to the correct coffee types. Return JSON format where final report is a text string with what you have to say: {{'final_report': '...'}}"
-    res = model.invoke(prompt)
-    return extract_json(res.content) or {"final_report": "Report failed."}
+    prompt = f"""Role: Posh product planning Strategist. Goal: {goal}. History: {json.dumps(history)}. 
+    Write a concise, formal final report mapping the calculated percentages to the correct coffee types.
+    You can happily use a table. 
+    Return JSON format where final report is a text string with what you have to say: {{'final_report': '...'}}
+    """
 
-# --- CONTROLLER (Motorn) ---
+    res = extract_json(model.invoke(prompt).content).get("final_report", "Complete.")
+    
+    prompt = f"""Role: Posh product planning Strategist. Goal: {goal}. History: {json.dumps(history)}. 
+    Use the History and describe every thought and its result -> describe it in your words.
+    Do this in a unordered list format.  
+    Return JSON format where final report is a text string with what you have to say: {{'final_report': '...'}}"""
+    res += "\n\n" + extract_json(model.invoke(prompt).content).get("final_report", "Complete.")
+    return res
+
+# --- CONTROLLER ---
 def agent_controller(user_goal):
     state = {"goal": user_goal, "history": [], "step_count": 0}
     last_action = None
@@ -170,7 +181,7 @@ def agent_controller(user_goal):
         
         if plan.get("status") == "FINISH":
             print("\n[SYSTEM]: Goal reached. Finalizing...")
-            return summarizer_node(state["goal"], state["history"]).get("final_report", "Complete.")
+            return summarizer_node(state["goal"], state["history"])
 
         call = caller_node(plan.get("instruction"), state["goal"])
         tool_info = call.get("tool_call", {})
@@ -192,13 +203,13 @@ def agent_controller(user_goal):
             try:
                 obs = str(TOOLS[t_name](t_query))
                 print(f"Observation: {obs[:150]}...")
-                state["history"].append({"action": t_name, "query": t_query, "observation": obs})
+                state["history"].append({"action": t_name, "query": t_query, "observation": obs,"thought": plan.get("thought")})
             except Exception as e:
-                state["history"].append({"action": t_name, "query": t_query, "observation": f"Error: {e}"})
+                state["history"].append({"action": t_name, "query": t_query, "observation": f"Error: {e}","thought": plan.get("thought")})
 
         state["step_count"] += 1
-
-    return "The Sir is exhausted."
+    result = summarizer_node(state["goal"], state["history"])
+    return "Failed to determine a n answer to the question."
 
 if __name__ == "__main__":
-    print(agent_controller("Calculate the percentage distribution of product types for the tea category ."))
+    print(agent_controller("Calculate the percentage distribution of product types for the tea category in lower manhattan last month. Time is 2023-03"))
