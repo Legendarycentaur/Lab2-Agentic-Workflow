@@ -19,14 +19,14 @@ def initialize_metadata():
     descriptions = [
     "The table name is 'sales_data'. It contains coffee shop transaction records.",
     "Column 'transaction_id' is a unique BIGINT identifier for each sale.",
-    "Column 'transaction_date' is TEXT (YYYY-MM-DD). Use this for daily or monthly sales analysis.",
+    "Column 'transaction_date' is TEXT (YYYY-MM-DD). Use this for date related analysis.",
     "Column 'transaction_time' is TEXT (HH:MM:SS) for time-of-day analysis.",
     "Column 'transaction_qty' (BIGINT) is the number of items sold in one transaction.",
     "Column 'store_id' and 'store_location' (TEXT) identify where the sale happened (e.g., Manhattan, Astoria).",
     "Column 'product_id' is a unique BIGINT for each item.",
     "Column 'unit_price' is a FLOAT representing the cost of a single item.",
     "Column 'product_category' (TEXT) is the broad category like 'Coffee', 'Tea', or 'Bakery'.",
-    "Column 'product_type' (TEXT) is the specific style, e.g., 'Gourmet brewed coffee'.",
+    "Column 'product_type' (TEXT) is the specific type, e.g., 'Gourmet brewed coffee'.",
     "Column 'product_detail' (TEXT) is the exact product name, e.g., 'Ethiopia Roasting'.",
     "To calculate total revenue for a row, use: (transaction_qty * unit_price)."
 ]
@@ -43,7 +43,7 @@ def get_schema_advice(user_query):
     """Hämtar de mest relevanta beskrivningarna för en specifik fråga."""
     db = get_vector_db()
     # Vi hämtar de 2 mest relevanta meningarna baserat på vad användaren frågar om
-    docs = db.similarity_search(user_query, k=2)
+    docs = db.similarity_search(user_query, k=10)
     return "\n".join([d.page_content for d in docs])
 
 if __name__ == "__main__":
