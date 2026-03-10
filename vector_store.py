@@ -18,10 +18,10 @@ def initialize_metadata():
     # Här beskriver du din data. Detta är 'hjärnan' i din RAG.
     descriptions = [
     "The table name is 'sales_data'.",
-    "Column 'product_category' is the main category (e.g., 'Coffee', 'Tea').",
-    "Column 'product_type' represents the specific variants of products within a category.",
-    "Column 'store_id' and 'store_location' identify the specific shop.",
-    "Column 'transaction_qty' is the number of units sold.",
+    "Column 'product_category': string, is the main category (e.g., 'Coffee', 'Tea').",
+    "Column 'product_type': string, represents the specific variants of products within a category.",
+    "Column 'store_id': int and 'store_location': string, identify the specific shop.",
+    "Column 'transaction_qty': int, is the number of units sold.",
     "To calculate store-specific distribution: Group by 'product_type' and 'store_location'.",
     "Formula: (SUM of units for a specific type in a store / SUM of total units for that category in that same store) * 100."
 ]
