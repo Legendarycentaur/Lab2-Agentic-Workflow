@@ -5,7 +5,7 @@ from vector_store import get_schema_advice # Här används dina Embeddings/Vecto
 from sql_tool import run_sql_query
 
 # 1. Konfiguration
-model = ChatOllama(model="llama3.1:8b", temperature=0, format="json")
+model = ChatOllama(model="llama3.1:8b", temperature=2, format="json")
 
 def safe_calculator(x):
     try:
@@ -21,6 +21,13 @@ TOOLS = {
     "RunSQLQueries: Executes SQL queries corresponding to given infromation": run_sql_query,
     "Calculator: Calulates expressions like (1+1)": safe_calculator
 }
+
+def get_tool(tool_type_str):
+    for key, action in TOOLS.items():
+        if key.startswith(tool_type_str):
+            return action
+            
+    return lambda: "Tool not recognized."
 
 # --- ROLL 1: PLANNER (Nu med JSON-säkerhet) ---
 def planner_node(goal, history):
@@ -59,6 +66,19 @@ def caller_node(goal, Instruction, history):
     print(response.content)
     return json.loads(response.content)
 
+def validator_node(goal, Instruction, history):
+    prompt = f"""Role: Your role is to validate if the History has all the values needed to answer the user question
+    History: {history}
+    
+    Return ONLY JSON:
+    {{ "answersquestion": True Or False}}"""
+
+    response = model.invoke(f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>{prompt}<|eot_id|>
+    <|start_header_id|>user<|end_header_id|>{goal}<|eot_id|>
+    <|start_header_id|>assistant<|end_header_id|>""")
+    print(response.content)
+    return json.loads(response.content)
+
 # --- CONTROLLER LOOP ---
 def agent_controller(user_goal):
     state = {"goal": user_goal, "history": [], "retry_count": 0}
@@ -78,24 +98,38 @@ def agent_controller(user_goal):
         # Hämta tool call
         call_data = caller_node(state["goal"], instruction, state["history"])
         tool_info = call_data.get("tool_call")
-        
-        # Hantera om tool_info är en lista (vanligt fel hos 8B)
-        if isinstance(tool_info, list): tool_info = tool_info[0]
 
+        
         if tool_info:
-            t_name = tool_info.get("name")
-            t_query = tool_info.get("query")
-            print(f"-> [CALLER]: Selected {t_name} with query {t_query}")
-            
-            if t_name in TOOLS:
-                print(f"-> [EXECUTING]: {t_name}")
-                # HÄR anropas din Vector Store via get_schema
-                observation = str(TOOLS[t_name](t_query))
-                
-                state["history"].append({
-                    "action": t_name,
+            tool = get_tool(tool_info.get("name"))
+            observation = tool(tool_info.get("query"))
+            state["history"].append({
+                    "step" : state["retry_count"],
+                    "action": tool_info.get("name"),
                     "earlierObservations": observation
                 })
+            validatedData = validator_node(state["goal"], instruction, state["history"])
+            tool_info = validatedData.get("answersquestion")
+            if(tool_info == "True"):
+                print("Was enought")
+        
+        # Hantera om tool_info är en lista (vanligt fel hos 8B)
+        # if isinstance(tool_info, list): tool_info = tool_info[0]
+
+        # if tool_info:
+        #     t_name = tool_info.get("name")
+        #     t_query = tool_info.get("query")
+        #     print(f"-> [CALLER]: Selected {t_name} with query {t_query}")
+
+        #     if t_name in get_tool():
+        #         print(f"-> [EXECUTING]: {t_name}")
+        #         # HÄR anropas din Vector Store via get_schema
+        #         observation = str(TOOLS[t_name](t_query))
+                
+        #         state["history"].append({
+        #             "action": t_name,
+        #             "earlierObservations": observation
+        #         })
         
         state["retry_count"] += 1
 
