@@ -18,29 +18,26 @@ def extract_json(response_text):
 
 # 2. VERKTYG (TOOLS)
 def safe_calculator(expression: str) -> str:
-    """Uppgraderad kalkylator som klarar av flera beräkningar samtidigt!"""
-    clean_str = str(expression).lower().replace("sum", "").replace("(", "").replace(")", "")
+    """Hanterar beräkningar. Tar nu brutalt bort ALLA bokstäver från inputen."""
+    if not expression or expression == "null": return "ERROR: Missing expression."
     
-    # Dela upp vid kommatecken för att hantera flera uttryck
+    # Ta bort allt som är bokstäver (förhindrar alla SQL-försök)
+    clean_str = re.sub(r"[a-zA-Z]", "", str(expression))
     expressions = clean_str.split(',')
     results = []
     
     for expr in expressions:
-        # Rensa varje separat uttryck
-        clean_expr = re.sub(r"[^0-9\.\+\-\*\/\ ]", "", expr).strip()
+        clean_expr = re.sub(r"[^0-9\.\+\-\*\/\(\)\ ]", "", expr).strip()
         clean_expr = re.sub(r"\++", "+", clean_expr).strip("+")
-        
         if clean_expr:
             try:
                 res = round(eval(clean_expr, {"__builtins__": {}}, {}), 2)
                 results.append(str(res))
-            except Exception as e:
-                results.append(f"Err({clean_expr})")
+            except:
+                results.append("Err")
                 
     if not results:
         return "ERROR: No valid math found."
-    
-    # Returnera en lista med resultat, t.ex. "30.29, 15.65, 54.06"
     return ", ".join(results)
 
 TOOLS = {
@@ -49,11 +46,11 @@ TOOLS = {
     "calculator": safe_calculator
 }
 
-# --- ROLL 1: PLANNER (Tillståndsmaskinen) ---
+# --- ROLL 1: PLANNER (Den analytiska strategen) ---
 def planner_node(goal, full_history):
     history_str = ""
     
-    # Fas-indikatorer
+    has_schema_info = False
     has_sql_data = False
     total_sum_found = ""
     has_percentages = False
@@ -65,75 +62,82 @@ def planner_node(goal, full_history):
         
         history_str += f"Step {i+1}: {action} -> {obs[:1000]}\n"
         
-        if action == "run_sql" and "count" in obs:
-            has_sql_data = True
-        if action == "calculator" and "+" in query and not "Err" in obs:
-            total_sum_found = obs # Sparar resultatet av additionen
-        if action == "calculator" and "/" in query:
-            has_percentages = True
+        if action == "get_schema": has_schema_info = True
+        if action == "run_sql" and "SUM" in obs and "product_type" in obs: has_sql_data = True
+        if action == "calculator" and "+" in query and "Err" not in obs and "ERROR" not in obs: total_sum_found = obs 
+        if action == "calculator" and "/" in query and "Err" not in obs and "ERROR" not in obs: has_percentages = True
 
-    # --- TILLSTÅNDSLOGIK (STATE MACHINE) ---
+    # --- PREFIX-STYRD LOGIK ---
     if has_percentages:
-        instruction_nudge = "PHASE 3 COMPLETE: Percentages calculated! Your ONLY task now is to set status to 'FINISH'."
+        cmd = "FINISH"
+        thought = "PHASE 4: Percentages successfully calculated!"
     elif total_sum_found:
-        instruction_nudge = f"PHASE 2: TOTAL SUM IS {total_sum_found}. Now calculate the percentages for each product. Instruction should be parts divided by {total_sum_found} multiplied by 100. Example instruction: 'Calculate 16403/{total_sum_found}*100, 8477/{total_sum_found}*100'"
+        cmd = f"CALCULATOR: Divide each product's quantity from the SQL result by {total_sum_found} and multiply by 100. Write ONLY the equations separated by commas. Example: 24943/{total_sum_found}*100, 12891/{total_sum_found}*100"
+        thought = f"PHASE 3: I have the total sum ({total_sum_found}). I will output a CALCULATOR command with the division equations."
     elif has_sql_data:
-        instruction_nudge = "PHASE 1: DATA DETECTED. First, we need the total sum. Write an instruction to ADD all the counts together. Example instruction: 'Sum 16403 + 8477 + 16912'"
+        cmd = "CALCULATOR: Extract the numbers from the SQL result and add them using '+'. Example: 24943 + 12891 + 25973 + 13012 + 12431"
+        thought = "PHASE 2: I must sum the quantities. I will output a CALCULATOR command."
+    elif has_schema_info:
+        cmd = "SQL: SELECT product_type, SUM(transaction_qty) FROM sales_data WHERE product_category = 'Coffee' GROUP BY product_type"
+        thought = "PHASE 1: I know the schema. I will output a SQL command."
     else:
-        instruction_nudge = "PHASE 0: Fetch data. Use: SELECT product_type, COUNT(*) as count FROM sales_data WHERE product_category = 'Coffee' GROUP BY product_type"
+        cmd = "SCHEMA: sales_data"
+        thought = "PHASE 0: I must fetch the schema first."
 
     prompt = f"""Role: Strategic Planner. Goal: {goal}.
-    
-    HISTORY:
+    HISTORY: 
     {history_str if history_str else "Starting now."}
-
-    GUIDELINE:
-    {instruction_nudge}
-
+    
+    INSTRUCTION TO SEND: {cmd}
+    
     Return ONLY JSON:
     {{
-        "thought": "Brief reasoning based on the current Phase",
-        "instruction": "Specific command to the technician", 
-        "status": "CONTINUE or FINISH"
+        "thought": "{thought}",
+        "instruction": "{cmd}", 
+        "status": "{'FINISH' if cmd == 'FINISH' else 'CONTINUE'}"
     }}"""
     
     res = model.invoke(prompt)
-    return extract_json(res.content) or {"instruction": "get_schema", "status": "CONTINUE"}
+    return extract_json(res.content) or {"instruction": "SCHEMA: sales_data", "status": "CONTINUE"}
 
 # --- ROLL 2: CALLER (Teknikern) ---
 def caller_node(instruction, goal):
-    prompt = f"""Role: Technical Assistant. 
-    Goal: {goal}.
-    Instruction: {instruction}.
+    prompt = f"""Role: Technical Assistant.
+    Instruction from Planner: {instruction}
     
-    RULES:
-    1. If instruction is to get data -> tool: 'run_sql', query: 'SELECT ...'
-    2. If instruction has numbers to add/divide/calculate -> tool: 'calculator', query: ONLY NUMBERS AND OPERATORS. Comma separated is allowed!
+    YOUR JOB: Extract the exact query based on the prefix.
+    - If prefix is 'SCHEMA:', tool is 'get_schema'. Query is the text after the prefix.
+    - If prefix is 'SQL:', tool is 'run_sql'. Query is the pure SQL statement.
+    - If prefix is 'CALCULATOR:', tool is 'calculator'. Query MUST BE ONLY NUMBERS AND OPERATORS (+, -, /, *). REMOVE ALL WORDS.
     
-    EXAMPLES OF CORRECT CALCULATOR USE:
-    Instruction: "Sum 16403 + 8477"
-    Return: {{ "tool_call": {{ "name": "calculator", "query": "16403 + 8477" }} }}
-    
-    Instruction: "Calculate 16403/50000*100, 8477/50000*100"
-    Return: {{ "tool_call": {{ "name": "calculator", "query": "16403/50000*100, 8477/50000*100" }} }}
-    
-    Return ONLY JSON:"""
+    Return ONLY JSON:
+    {{
+        "tool_call": {{
+            "name": "calculator" or "run_sql" or "get_schema",
+            "query": "exact string here"
+        }}
+    }}"""
     
     res = model.invoke(prompt)
     data = extract_json(res.content)
     
-    t = data.get("tool_call", {}) if data else {}
-    name = str(t.get("name")).lower()
-    if any(x in name for x in ["calc", "math", "sum"]): t["name"] = "calculator"
-    elif "sql" in name: t["name"] = "run_sql"
+    # Om tolkningen misslyckas tvingar vi fram ett system-fel istället för att dölja det
+    if not data or "tool_call" not in data:
+        return {"tool_call": {"name": "calculator", "query": "ERROR_JSON_PARSE_FAILED"}}
+        
+    # Säkerställ mappning baserat på prefixet ifall agenten försöker vara kreativ
+    t = data["tool_call"]
+    if "SCHEMA:" in instruction: t["name"] = "get_schema"
+    elif "SQL:" in instruction: t["name"] = "run_sql"
+    elif "CALCULATOR:" in instruction: t["name"] = "calculator"
     
-    return data or {"tool_call": {"name": "get_schema", "query": "sales_data"}}
+    return data
 
 # --- ROLL 3: SUMMARIZER (The Sir) ---
 def summarizer_node(goal, history):
-    prompt = f"Role: Posh Strategist. Goal: {goal}. History: {json.dumps(history)}. Write a formal report stating the final percentage distribution of the coffee types. Return JSON: {{'final_report': '...'}}"
+    prompt = f"Role: Posh Strategist. Goal: {goal}. History: {json.dumps(history)}. Write a concise, formal final report mapping the calculated percentages to the correct coffee types. Return JSON: {{'final_report': '...'}}"
     res = model.invoke(prompt)
-    return extract_json(res.content) or {"final_report": "Report generation failed."}
+    return extract_json(res.content) or {"final_report": "Report failed."}
 
 # --- CONTROLLER (Motorn) ---
 def agent_controller(user_goal):
@@ -152,17 +156,12 @@ def agent_controller(user_goal):
         call = caller_node(plan.get("instruction"), state["goal"])
         tool_info = call.get("tool_call", {})
         t_name = tool_info.get("name")
-        t_query = tool_info.get("query")
-
-        # Säkerhetsspärrar
-        if t_name == "calculator" and "select" in str(t_query).lower():
-            state["history"].append({"action": "system", "observation": "ERROR: Calculator only takes math, not SQL."})
-            state["retry_count"] += 1
-            continue
+        t_query = str(tool_info.get("query", ""))
 
         current_action = f"{t_name}:{t_query}"
         if current_action == last_action:
-            state["history"].append({"action": "system", "observation": "ERROR: Repeating action. Advance to the next phase!"})
+            print(f"\n!! [GUARD BLOCK]: Agent is repeating '{current_action}'. Forcing transition.")
+            state["history"].append({"action": "system", "observation": "ERROR: You repeated the exact same query. Advance to the next logic step!"})
             state["retry_count"] += 1
             continue
             
@@ -180,7 +179,7 @@ def agent_controller(user_goal):
 
         state["retry_count"] += 1
 
-    return "The Sir is exhausted. Coordination failure."
+    return "The Sir is exhausted."
 
 if __name__ == "__main__":
     print(agent_controller("Calculate the percentage distribution of product types for the Coffee category."))
