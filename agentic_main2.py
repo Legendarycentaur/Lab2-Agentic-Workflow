@@ -203,8 +203,8 @@ def agent_controller(user_goal):
                 state["history"].append({"action": t_name, "query": t_query, "observation": f"Error: {e}","thought": plan.get("thought")})
 
         state["step_count"] += 1
-    result = summarizer_node(state["goal"], state["history"])
-    return "Failed to determine a n answer to the question."
+    result = summarizer_node("Failed to determine a n answer to the question.", state["history"])
+    return result
 
 if __name__ == "__main__":
-    print(agent_controller("Calculate the percentage distribution of product types for the tea category in lower manhattan last month. Time is 2023-03"))
+    print(agent_controller("Calculate the percentage distribution of product types for the coffee category in lower manhattan last month. Time is 2023-03"))
