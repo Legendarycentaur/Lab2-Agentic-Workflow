@@ -24,12 +24,16 @@ TOOLS = {
 
 # --- ROLL 1: PLANNER (Nu med JSON-säkerhet) ---
 def planner_node(goal, history):
-    prompt = f"""Role: Strategic Planner. Goal: {goal}. History: {history}.
+    prompt = f"""
+    Role: Strategic Professional Problem Solver Planner. You understand the Users question perfectly. Your answer will be an instruction with what the next step is. Top get to that goal. 
+    You know nothing about the database unless they are explicitly given under the History Parameter.
     
-    MY CHECKLIST:
-    1. Do I know the column names? If NO -> Next step: "get_schema"
-    2. Do I have the raw sales numbers? If NO -> Next step: "run_sql"
-    3. Do I have the numbers but need percentages? If YES -> Next step: "calculator"
+    History:{history}
+
+    CHECKLIST:
+    1. Do you know the column names? If NO -> Next step: "get_schema"
+    2. Do you have the raw sales numbers? If NO -> Next step: "run_sql"
+    3. Do you have the numbers but need percentages? If YES -> Next step: "calculator"
     4. Are all percentages done? If YES -> status: "FINISH"
     
     Return ONLY JSON:
@@ -41,12 +45,13 @@ def planner_node(goal, history):
 # --- ROLL 2: CALLER ---
 def caller_node(instruction, history):
     prompt = f"""Role: Technical Tool Selector. 
-    Instruction: {instruction}. 
-    
+    Instruction: {instruction} 
+    History {history}
+
     RULES FOR TOOLS:
     - If instruction is to find columns/tables -> name: "get_schema", query: "sales"
     - If instruction is to get data from DB -> name: "run_sql", query: "SELECT..."
-    - If instruction is to do MATH with numbers -> name: "calculator", query: "numbers only (e.g. 10+10)"
+    - If instruction is to do MATH with numbers -> name: "calculator", query: "numbers only ( 10+10)"
     
     Return ONLY JSON:
     {{ "tool_call": {{ "name": "get_schema" or "run_sql" or "calculator", "query": "string" }} }}"""
