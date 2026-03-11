@@ -2,7 +2,7 @@
 
 Detta projekt är en del av Laboration 2 och demonstrerar ett **Agentiskt Arbetsflöde** (Multi-Agent System). Systemet använder en arkitektur med **Planner**, **Caller** och **Summarizer** för att analysera försäljningsdata från en kaffebutik.
 
-Systemet kombinerar **RAG** (Retrieval Augmented Generation) för att förstå databasschemat och en deterministisk **Calculator** för att säkerställa 100% korrekta matematiska beräkningar och undvika LLM-hallucinationer.
+Systemet kombinerar **RAG** (Retrieval Augmented Generation) för att förstå databasschemat, SQLite databas som komminuceras med via en **sql-tool** och en deterministisk **Calculator** för att säkerställa korrekta matematiska beräkningar och undvika LLM-hallucinationer.
 
 ---
 
@@ -61,8 +61,6 @@ För att agenten ska kunna navigera i databasen används en Vector Store (`langc
 
 ## 5. Kör Arbetsflödet
 
-Se till att Ollama körs i bakgrunden.
-
 1.  **Starta huvudagenten:**
     ```bash
     python agentic_main.py
@@ -74,30 +72,13 @@ Systemet bygger på en iterativ loop där varje steg loggas för full spårbarhe
 
 
 * **Planner:** Ansvarar för den strategiska analysen och väljer nästa steg baserat på historiken.
-* **Caller:** En teknisk översättare som mappar planer till specifika verktygsanrop och rensar bort syntaktiskt brus.
-* * **Summarizer:** När målet är uppnått sammanställer denna roll all insamlad data till en formell, mänskligt läsbar rapport.
-* **Memory Management:** Använder en "Sliding Window"-metod för att undvika att agenten blir överväldigad av gammal historik och fastnar i loopar.
+* **Caller:** En teknisk översättare som mappar planen till specifikt verktygsanrop.
+* **Summarizer:** När målet är uppnått sammanställer denna roll all insamlad data till en formell, mänskligt läsbar rapport.
 
 ---
-
-## Projektets filer och stack
-
-### Teknisk Stack
-* **LLM:** Ollama (Llama 3.1 8B)
-* **Framework:** LangChain (Core, Community, Chroma, Ollama)
-* **Database:** SQLite & SQLAlchemy
-* **Vector DB:** ChromaDB
 
 ### Filstruktur
 * `agentic_main.py`: Huvudfilen med Multi-Agent-logiken och Controller-loopen.
 * `data_ingestion.py`: Skript för automatiserad datahämtning och SQL-initiering.
 * `vector_store.py`: Hanterar embeddings för databasschemat (RAG).
 * `requirements.txt`: Lista på alla nödvändiga Python-bibliotek.
-
----
-
-## Felsökning
-
-* **"Failed to determine an answer to the question.":** Detta händer om agenten når max antal försök (retry_count).
-* **Loopar:** Om agenten repeterar samma steg, prova att rensa gamla loggfiler och starta om Ollama.
-* **Requirements:** Om `pysqlite3-binary` orsakar problem på Windows, se till att du har "Build Tools for Visual Studio" installerade.
