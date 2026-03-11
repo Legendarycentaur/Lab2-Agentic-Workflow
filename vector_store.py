@@ -2,20 +2,25 @@ from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 import os
 
-# Inställningar för On-Prem (Spara RAM genom att skriva till disk)
-DB_PATH = "./chroma_langchain_db"
-EMBED_MODEL = "nomic-embed-text"
+
+DB_PATH = "./chroma_langchain_db" # Local directory where the vector database is saved persistently
+EMBED_MODEL = "nomic-embed-text" # The Ollama embed-model used to convert text into vector embeddings
 
 def get_vector_db():
-    """Laddar existerande databas från disk eller skapar en ny."""
+    """Loads the existing vector database from the local disk.
+    If the directory does not exist, Chroma will prepare to create a new one."""
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
     return Chroma(persist_directory=DB_PATH, embedding_function=embeddings)
 
 def initialize_metadata():
-    """Fyller databasen med kunskap om SQL-tabellerna."""
+    """
+    Populates the vector database with knowledge about the SQL tables.
+    This acts as the foundation for the Retrieval-Augmented Generation (RAG) system.
+    """
     embeddings = OllamaEmbeddings(model=EMBED_MODEL)
     
-    # Här beskriver du din data. Detta är 'hjärnan' i din RAG.
+    # Define the schema descriptions here. 
+    # This is the 'brain' of the agent, providing context about available data.
     descriptions = [
     "The table name is 'sales_data'.",
     "Column 'product_category': string, is the main category (e.g., 'Coffee', 'Tea').",
@@ -26,7 +31,7 @@ def initialize_metadata():
     "Formula: (SUM of units for a specific type in a store / SUM of total units for that category in that same store) * 100."
 ]
     
-    # Skapa vektordatabasen och spara den i mappen chroma_langchain_db
+    # Create the vector database from the text list and save it to the specified directory
     vector_db = Chroma.from_texts(
         texts=descriptions,
         embedding=embeddings,
@@ -35,13 +40,14 @@ def initialize_metadata():
     print("✓ Metadata vectorized and stored in chroma_langchain_db.")
 
 def get_schema_advice(user_query):
-    """Hämtar de mest relevanta beskrivningarna för en specifik fråga."""
+    """Retrieves the most relevant schema descriptions based on a specific query.
+    This function is exposed as a 'Tool' to the AI Agent."""
     db = get_vector_db()
-    # Vi hämtar de 2 mest relevanta meningarna baserat på vad användaren frågar om
+    # Perform a similarity search to fetch the top 5 (k=5) most relevant documents for the query
     docs = db.similarity_search(user_query, k=5)
+    # Combine the retrieved documents into a single readable string for the agent
     return "\n".join([d.page_content for d in docs])
 
 if __name__ == "__main__":
-    # Detta körs bara när du startar just denna fil
     initialize_metadata()
     
