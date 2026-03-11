@@ -22,13 +22,13 @@ Innan du startar agenten måste Ollama-motorn vara installerad och rätt modell 
 ## 2. Sätt upp Conda-miljön
 
 För att säkerställa kompatibilitet används Python 3.12.
-
-1.  **Skapa och aktivera miljön:**
+1.  **Installera Conda:** Ladda ner och installera från [conda.io](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
+2.  **Skapa och aktivera miljön:**
     ```bash
     conda create -n coffee_agent python=3.12 -y
     conda activate coffee_agent
     ```
-2.  **Installera beroenden via requirements.txt:**
+3.  **Installera beroenden via requirements.txt:**
     ```bash
     pip install -r requirements.txt
     ```
