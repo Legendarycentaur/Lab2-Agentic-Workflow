@@ -1,4 +1,4 @@
-# ☕ Coffee Sales Agentic Workflow
+# Coffee Sales Agentic Workflow
 
 Detta projekt är en del av Laboration 2 och demonstrerar ett **Agentiskt Arbetsflöde** (Multi-Agent System). Systemet använder en arkitektur med **Planner**, **Caller** och **Summarizer** för att analysera försäljningsdata från en kaffebutik.
 
@@ -6,7 +6,7 @@ Systemet kombinerar **RAG** (Retrieval Augmented Generation) för att förstå d
 
 ---
 
-## 🚀 1. Förberedelser: Ollama
+## 1. Förberedelser: Ollama
 
 Innan du startar agenten måste Ollama-motorn vara installerad och rätt modell finnas tillgänglig lokalt.
 
@@ -19,7 +19,7 @@ Innan du startar agenten måste Ollama-motorn vara installerad och rätt modell 
 
 ---
 
-## 🛠 2. Sätt upp Conda-miljön
+## 2. Sätt upp Conda-miljön
 
 För att säkerställa kompatibilitet används Python 3.12.
 
@@ -35,7 +35,7 @@ För att säkerställa kompatibilitet används Python 3.12.
 
 ---
 
-## 📥 3. Dataprocessering (Ingestion)
+## 3. Dataprocessering (Ingestion)
 
 Projektet använder automatiserad datahämtning och transformation för att bygga den lokala databasen.
 
@@ -47,7 +47,7 @@ Projektet använder automatiserad datahämtning och transformation för att bygg
 
 ---
 
-## 🔍 4. Vector Store & RAG (Embeddings)
+## 4. Vector Store & RAG (Embeddings)
 
 För att agenten ska kunna navigera i databasen används en Vector Store (`langchain-chroma`) som lagrar semantisk information om tabellens schema.
 
@@ -59,7 +59,7 @@ För att agenten ska kunna navigera i databasen används en Vector Store (`langc
 
 ---
 
-## 🤖 5. Kör Arbetsflödet
+## 5. Kör Arbetsflödet
 
 Se till att Ollama körs i bakgrunden.
 
@@ -80,7 +80,7 @@ Systemet bygger på en iterativ loop där varje steg loggas för full spårbarhe
 
 ---
 
-## 📂 Projektets filer och stack
+## Projektets filer och stack
 
 ### Teknisk Stack
 * **LLM:** Ollama (Llama 3.1 8B)
@@ -96,7 +96,7 @@ Systemet bygger på en iterativ loop där varje steg loggas för full spårbarhe
 
 ---
 
-## ⚠️ Felsökning
+## Felsökning
 
 * **"Failed to determine an answer to the question.":** Detta händer om agenten når max antal försök (retry_count).
 * **Loopar:** Om agenten repeterar samma steg, prova att rensa gamla loggfiler och starta om Ollama.
