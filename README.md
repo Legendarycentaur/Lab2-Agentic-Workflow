@@ -65,7 +65,7 @@ Se till att Ollama körs i bakgrunden.
 
 1.  **Starta huvudagenten:**
     ```bash
-    python agentic_main2.py
+    python agentic_main.py
     ```
 
 ### Systemarkitektur
